@@ -3,16 +3,19 @@ package com.vault.ui;
 import com.vault.model.Admin;
 import com.vault.model.VaultFile;
 import com.vault.service.VaultService;
+import com.vault.service.AutoUpdater;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.File;
 import java.util.List;
 
 /**
- * Main window for vault management
+ * Main window for vault management with professional features
  */
 public class MainWindow extends JFrame {
     
@@ -26,6 +29,7 @@ public class MainWindow extends JFrame {
     private JLabel spaceLabel;
     private JProgressBar spaceProgressBar;
     private JScrollPane scrollPane;
+    private SystemTrayManager trayManager;
     
     public MainWindow(Admin admin, String password) {
         this.currentAdmin = admin;
@@ -38,6 +42,7 @@ public class MainWindow extends JFrame {
         setupLayout();
         setupEventHandlers();
         configureWindow();
+        setupSystemTray();
         refreshFileList();
         updateStats();
         updateSpaceInfo();
@@ -306,6 +311,86 @@ public class MainWindow extends JFrame {
             setIconImage(createIcon());
         } catch (Exception e) {
             // Ignore if icon creation fails
+        }
+    }
+    
+    /**
+     * Setup system tray integration
+     */
+    private void setupSystemTray() {
+        trayManager = SystemTrayManager.getInstance();
+        trayManager.initialize(this, vaultService);
+        
+        // Override window closing behavior for tray integration
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                if (SystemTray.isSupported() && 
+                    SettingsDialog.getPreferences().getBoolean("minimize_to_tray", true)) {
+                    trayManager.minimizeToTray();
+                } else {
+                    exitApplication();
+                }
+            }
+            
+            @Override
+            public void windowIconified(WindowEvent e) {
+                if (SystemTray.isSupported() && 
+                    SettingsDialog.getPreferences().getBoolean("minimize_to_tray", true)) {
+                    trayManager.minimizeToTray();
+                }
+            }
+        });
+    }
+    
+    /**
+     * Show add file dialog (called from system tray)
+     */
+    public void showAddFileDialog() {
+        SwingUtilities.invokeLater(() -> {
+            AddFileDialog dialog = new AddFileDialog(this, vaultService);
+            dialog.setVisible(true);
+            if (dialog.isFileAdded()) {
+                refreshFileList();
+                updateStats();
+                updateSpaceInfo();
+            }
+        });
+    }
+    
+    /**
+     * Show change password dialog (called from system tray)
+     */
+    public void showChangePasswordDialog() {
+        SwingUtilities.invokeLater(() -> {
+            ChangeCredentialsDialog dialog = new ChangeCredentialsDialog(this, currentAdmin);
+            dialog.setVisible(true);
+        });
+    }
+    
+    /**
+     * Exit application properly
+     */
+    private void exitApplication() {
+        int result = JOptionPane.showConfirmDialog(
+            this,
+            "Are you sure you want to exit Secure Vault?\n\nAll unsaved work will be lost.",
+            "Exit Confirmation",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.QUESTION_MESSAGE
+        );
+        
+        if (result == JOptionPane.YES_OPTION) {
+            // Clean up system tray
+            if (trayManager != null) {
+                trayManager.cleanup();
+            }
+            
+            // Clean shutdown
+            vaultService.cleanup();
+            dispose();
+            System.exit(0);
         }
     }
     

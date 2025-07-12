@@ -1,6 +1,13 @@
-# Secure Vault Application
+# 🔒 Secure Vault Application™ - Professional Edition
 
-A desktop application for securely storing and managing files with encryption and admin authentication.
+## 📱 **Production-Ready Personal File Security System**
+
+[![Version](https://img.shields.io/badge/version-1.0.1-blue.svg)](https://github.com/Lintshiwe/VaultApp/releases)
+[![Java](https://img.shields.io/badge/java-17+-orange.svg)](https://www.oracle.com/java/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)]()
+
+A **professional-grade desktop application** for secure file storage and management with military-grade encryption, designed for real-world personal and business use.
 
 ## Recent Updates
 

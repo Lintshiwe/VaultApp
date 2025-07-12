@@ -16,6 +16,8 @@ package com.vault;
 
 import com.formdev.flatlaf.FlatDarkLaf;
 import com.vault.ui.LoginWindow;
+import com.vault.ui.SplashScreen;
+import com.vault.service.AutoUpdater;
 import com.vault.util.DatabaseManager;
 import com.vault.util.SecureErrorHandler;
 
@@ -34,6 +36,20 @@ public class VaultApplication {
     private static final String APPLICATION_NAME = "Secure Vault Application™";
     
     public static void main(String[] args) {
+        // Parse command line arguments
+        boolean showSplash = true;
+        boolean checkUpdates = true;
+        
+        for (String arg : args) {
+            if ("--no-splash".equals(arg)) showSplash = false;
+            if ("--no-update-check".equals(arg)) checkUpdates = false;
+        }
+        
+        // Show professional splash screen
+        if (showSplash) {
+            SplashScreen.showSplash();
+        }
+        
         // Validate copyright integrity
         if (!validateCopyright()) {
             showCopyrightViolationError();
@@ -42,7 +58,17 @@ public class VaultApplication {
         
         // Set system look and feel to FlatLaf Dark theme
         try {
+            // Enable system specific enhancements
+            System.setProperty("apple.laf.useScreenMenuBar", "true");
+            System.setProperty("apple.awt.application.name", APPLICATION_NAME);
+            
             UIManager.setLookAndFeel(new FlatDarkLaf());
+            
+            // Set custom UI properties for professional look
+            UIManager.put("Button.arc", 8);
+            UIManager.put("Component.arc", 8);
+            UIManager.put("TextComponent.arc", 8);
+            
         } catch (Exception e) {
             System.err.println("Failed to initialize FlatLaf theme: " + e.getMessage());
         }
@@ -52,6 +78,13 @@ public class VaultApplication {
         
         // Set application properties
         System.setProperty("java.awt.headless", "false");
+        System.setProperty("awt.useSystemAAFontSettings", "on");
+        System.setProperty("swing.aatext", "true");
+        
+        // Check for updates if enabled
+        if (checkUpdates) {
+            AutoUpdater.getInstance().checkForUpdatesAsync();
+        }
         
         // Run on Event Dispatch Thread
         SwingUtilities.invokeLater(() -> {
@@ -62,6 +95,9 @@ public class VaultApplication {
                 
                 // Center window on screen
                 centerWindow(loginWindow);
+                
+                // Set professional window icon
+                setApplicationIcon(loginWindow);
                 
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(null, 
@@ -84,6 +120,41 @@ public class VaultApplication {
         int y = (screenSize.height - windowSize.height) / 2;
         
         window.setLocation(x, y);
+    }
+    
+    /**
+     * Sets professional application icon
+     */
+    private static void setApplicationIcon(Window window) {
+        try {
+            // Create a professional vault icon
+            java.awt.image.BufferedImage icon = new java.awt.image.BufferedImage(32, 32, 
+                java.awt.image.BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g2d = icon.createGraphics();
+            
+            // Enable antialiasing
+            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            
+            // Draw professional vault icon
+            g2d.setColor(new Color(70, 130, 180));
+            g2d.fillRoundRect(4, 12, 24, 16, 4, 4);
+            
+            g2d.setColor(new Color(100, 150, 200));
+            g2d.setStroke(new BasicStroke(2.0f));
+            g2d.drawRoundRect(8, 6, 16, 12, 6, 6);
+            
+            g2d.setColor(new Color(255, 255, 255));
+            g2d.fillOval(14, 18, 4, 4);
+            g2d.fillRect(15, 20, 2, 4);
+            
+            g2d.dispose();
+            
+            if (window instanceof Frame) {
+                ((Frame) window).setIconImage(icon);
+            }
+        } catch (Exception e) {
+            // Icon setting is not critical, continue without it
+        }
     }
     
     /**
