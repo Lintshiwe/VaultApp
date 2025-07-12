@@ -35,13 +35,17 @@ public class AddFileDialog extends JDialog {
                                   "<br><b>Size:</b> " + sizeStr + "</html>");
         fileInfoLabel.setFont(new Font("Arial", Font.PLAIN, 12));
         
-        // Description field
-        descriptionField = new JTextField(30);
+        // Description field - flexible width
+        descriptionField = new JTextField();
         descriptionField.setFont(new Font("Arial", Font.PLAIN, 12));
+        descriptionField.setPreferredSize(new Dimension(300, 25));
+        descriptionField.setMinimumSize(new Dimension(200, 25));
         
-        // Tags field
-        tagsField = new JTextField(30);
+        // Tags field - flexible width
+        tagsField = new JTextField();
         tagsField.setFont(new Font("Arial", Font.PLAIN, 12));
+        tagsField.setPreferredSize(new Dimension(300, 25));
+        tagsField.setMinimumSize(new Dimension(200, 25));
     }
     
     private void setupLayout() {
@@ -148,8 +152,12 @@ public class AddFileDialog extends JDialog {
     
     private void configureDialog() {
         setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-        setResizable(false);
+        setResizable(true);
         pack();
+        
+        // Set minimum size for dialog
+        setMinimumSize(new Dimension(400, 200));
+        
         setLocationRelativeTo(getParent());
         
         // Focus on description field

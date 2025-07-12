@@ -2,6 +2,7 @@ package com.vault.util;
 
 import com.vault.model.Admin;
 import com.vault.model.VaultFile;
+import com.vault.config.SecurityConfig;
 
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -14,7 +15,7 @@ import java.util.List;
 public class DatabaseManager {
     
     private static DatabaseManager instance;
-    private static final String DB_URL = "jdbc:sqlite:vault.db";
+    private static final String DB_URL = "jdbc:sqlite:vault.db?journal_mode=WAL&busy_timeout=30000";
     
     private DatabaseManager() {}
     
@@ -146,16 +147,35 @@ public class DatabaseManager {
     private void updateLastLogin(int adminId) {
         String sql = "UPDATE admins SET last_login = ? WHERE id = ?";
         
-        try (Connection conn = DriverManager.getConnection(DB_URL);
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
-            stmt.setString(1, LocalDateTime.now().toString());
-            stmt.setInt(2, adminId);
-            stmt.executeUpdate();
-            
-        } catch (SQLException e) {
-            // Log error but don't throw exception
-            System.err.println("Failed to update last login: " + e.getMessage());
+        // Retry mechanism for database locks
+        int maxRetries = 3;
+        int retryDelay = 100; // milliseconds
+        
+        for (int attempt = 0; attempt < maxRetries; attempt++) {
+            try (Connection conn = DriverManager.getConnection(DB_URL);
+                 PreparedStatement stmt = conn.prepareStatement(sql)) {
+                
+                conn.setAutoCommit(true);
+                stmt.setString(1, LocalDateTime.now().toString());
+                stmt.setInt(2, adminId);
+                stmt.executeUpdate();
+                return; // Success, exit retry loop
+                
+            } catch (SQLException e) {
+                if (attempt == maxRetries - 1) {
+                    // Last attempt failed
+                    System.err.println("Failed to update last login after " + maxRetries + " attempts: " + e.getMessage());
+                } else {
+                    // Wait before retry
+                    try {
+                        Thread.sleep(retryDelay);
+                        retryDelay *= 2; // Exponential backoff
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+            }
         }
     }
     
@@ -230,13 +250,13 @@ public class DatabaseManager {
     /**
      * Delete vault file from database
      */
-    public boolean deleteVaultFile(int fileId) {
+    public boolean deleteVaultFile(long fileId) {
         String sql = "DELETE FROM vault_files WHERE id = ?";
         
         try (Connection conn = DriverManager.getConnection(DB_URL);
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
-            stmt.setInt(1, fileId);
+            stmt.setLong(1, fileId);
             int affectedRows = stmt.executeUpdate();
             return affectedRows > 0;
             
@@ -285,5 +305,242 @@ public class DatabaseManager {
         }
         
         return files;
+    }
+    
+    /**
+     * Update admin credentials (username and/or password)
+     */
+    public boolean updateAdminCredentials(int adminId, String newUsername, String newPassword) {
+        String checkUsernameSql = "SELECT COUNT(*) FROM admins WHERE username = ? AND id != ?";
+        String updateSql = "UPDATE admins SET username = ?, password_hash = ?, salt = ? WHERE id = ?";
+        
+        // Retry mechanism for database locks
+        int maxRetries = 3;
+        int retryDelay = 100; // milliseconds
+        
+        for (int attempt = 0; attempt < maxRetries; attempt++) {
+            try (Connection conn = DriverManager.getConnection(DB_URL)) {
+                conn.setAutoCommit(false);
+                
+                // Check if new username already exists (if username is being changed)
+                if (newUsername != null && !newUsername.trim().isEmpty()) {
+                    try (PreparedStatement checkStmt = conn.prepareStatement(checkUsernameSql)) {
+                        checkStmt.setString(1, newUsername.trim());
+                        checkStmt.setInt(2, adminId);
+                        ResultSet rs = checkStmt.executeQuery();
+                        if (rs.getInt(1) > 0) {
+                            conn.rollback();
+                            return false; // Username already exists
+                        }
+                    }
+                }
+                
+                // Generate new salt and hash for password
+                String newSalt = SecurityUtil.generateSalt();
+                String newPasswordHash = SecurityUtil.hashPassword(newPassword, newSalt);
+                
+                // Update credentials
+                try (PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
+                    updateStmt.setString(1, newUsername != null ? newUsername.trim() : getCurrentUsername(adminId));
+                    updateStmt.setString(2, newPasswordHash);
+                    updateStmt.setString(3, newSalt);
+                    updateStmt.setInt(4, adminId);
+                    
+                    int rowsUpdated = updateStmt.executeUpdate();
+                    
+                    if (rowsUpdated > 0) {
+                        conn.commit();
+                        return true;
+                    } else {
+                        conn.rollback();
+                        return false;
+                    }
+                }
+                
+            } catch (SQLException e) {
+                if (attempt == maxRetries - 1) {
+                    System.err.println("Failed to update admin credentials after " + maxRetries + " attempts: " + e.getMessage());
+                    return false;
+                } else {
+                    // Wait before retry
+                    try {
+                        Thread.sleep(retryDelay);
+                        retryDelay *= 2; // Exponential backoff
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        return false;
+                    }
+                }
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Update admin credentials with specific salt (used for re-encryption)
+     */
+    public boolean updateAdminCredentials(int adminId, String newUsername, String newPassword, String newSalt) {
+        String checkUsernameSql = "SELECT COUNT(*) FROM admins WHERE username = ? AND id != ?";
+        String updateSql = "UPDATE admins SET username = ?, password_hash = ?, salt = ? WHERE id = ?";
+        
+        // Retry mechanism for database locks
+        int maxRetries = 3;
+        int retryDelay = 100; // milliseconds
+        
+        for (int attempt = 0; attempt < maxRetries; attempt++) {
+            try (Connection conn = DriverManager.getConnection(DB_URL)) {
+                conn.setAutoCommit(false);
+                
+                // Check if new username already exists (if username is being changed)
+                if (newUsername != null && !newUsername.trim().isEmpty()) {
+                    try (PreparedStatement checkStmt = conn.prepareStatement(checkUsernameSql)) {
+                        checkStmt.setString(1, newUsername.trim());
+                        checkStmt.setInt(2, adminId);
+                        ResultSet rs = checkStmt.executeQuery();
+                        if (rs.getInt(1) > 0) {
+                            conn.rollback();
+                            return false; // Username already exists
+                        }
+                    }
+                }
+                
+                // Use provided salt and hash password
+                String newPasswordHash = SecurityUtil.hashPassword(newPassword, newSalt);
+                
+                // Update credentials
+                try (PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
+                    updateStmt.setString(1, newUsername != null ? newUsername.trim() : getCurrentUsername(adminId));
+                    updateStmt.setString(2, newPasswordHash);
+                    updateStmt.setString(3, newSalt);
+                    updateStmt.setInt(4, adminId);
+                    
+                    int rowsUpdated = updateStmt.executeUpdate();
+                    
+                    if (rowsUpdated > 0) {
+                        conn.commit();
+                        return true;
+                    } else {
+                        conn.rollback();
+                        return false;
+                    }
+                }
+                
+            } catch (SQLException e) {
+                if (attempt == maxRetries - 1) {
+                    System.err.println("Failed to update admin credentials after " + maxRetries + " attempts: " + e.getMessage());
+                    return false;
+                } else {
+                    // Wait before retry
+                    try {
+                        Thread.sleep(retryDelay);
+                        retryDelay *= 2; // Exponential backoff
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        return false;
+                    }
+                }
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Get current username for admin ID
+     */
+    private String getCurrentUsername(int adminId) {
+        String sql = "SELECT username FROM admins WHERE id = ?";
+        
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, adminId);
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getString("username");
+            }
+        } catch (SQLException e) {
+            System.err.println("Failed to get current username: " + e.getMessage());
+        }
+        
+        return null;
+    }
+
+    /**
+     * Get all files from the database
+     */
+    public List<VaultFile> getAllFiles() {
+        List<VaultFile> files = new ArrayList<>();
+        String sql = "SELECT * FROM vault_files ORDER BY date_added DESC";
+        
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            
+            while (rs.next()) {
+                VaultFile file = new VaultFile();
+                file.setId(rs.getLong("id"));
+                file.setOriginalName(rs.getString("original_name"));
+                file.setEncryptedPath(rs.getString("encrypted_path"));
+                file.setFileSize(rs.getLong("file_size"));
+                file.setFileType(rs.getString("file_type"));
+                file.setDescription(rs.getString("description"));
+                
+                // Handle date_added
+                String dateAddedStr = rs.getString("date_added");
+                if (dateAddedStr != null) {
+                    file.setDateAdded(LocalDateTime.parse(dateAddedStr));
+                }
+                
+                files.add(file);
+            }
+            
+        } catch (SQLException e) {
+            SecurityConfig.secureLog(java.util.logging.Level.SEVERE, "Database error retrieving files: {0}", e.getMessage());
+        }
+        
+        return files;
+    }
+    
+    /**
+     * Get all admins from the database
+     */
+    public List<Admin> getAllAdmins() {
+        List<Admin> admins = new ArrayList<>();
+        String sql = "SELECT * FROM admins";
+        
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            
+            while (rs.next()) {
+                Admin admin = new Admin();
+                admin.setId(rs.getInt("id"));
+                admin.setUsername(rs.getString("username"));
+                admin.setPasswordHash(rs.getString("password_hash"));
+                admin.setSalt(rs.getString("salt"));
+                
+                String createdAtStr = rs.getString("created_at");
+                if (createdAtStr != null) {
+                    admin.setCreatedAt(LocalDateTime.parse(createdAtStr));
+                }
+                
+                String lastLoginStr = rs.getString("last_login");
+                if (lastLoginStr != null) {
+                    admin.setLastLogin(LocalDateTime.parse(lastLoginStr));
+                }
+                
+                admin.setActive(rs.getBoolean("is_active"));
+                
+                admins.add(admin);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Failed to get all admins: " + e.getMessage());
+        }
+        
+        return admins;
     }
 }

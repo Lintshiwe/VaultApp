@@ -2,6 +2,7 @@ package com.vault.ui;
 
 import com.vault.model.Admin;
 import com.vault.util.DatabaseManager;
+import com.vault.util.SecureErrorHandler;
 
 import javax.swing.*;
 import java.awt.*;
@@ -29,15 +30,19 @@ public class LoginWindow extends JFrame {
     }
     
     private void initializeComponents() {
-        // Username field
-        usernameField = new JTextField(20);
+        // Username field with flexible sizing
+        usernameField = new JTextField();
         usernameField.setFont(new Font("Arial", Font.PLAIN, 14));
+        usernameField.setPreferredSize(new Dimension(200, 30));
+        usernameField.setMinimumSize(new Dimension(150, 30));
         
-        // Password field
-        passwordField = new JPasswordField(20);
+        // Password field with flexible sizing
+        passwordField = new JPasswordField();
         passwordField.setFont(new Font("Arial", Font.PLAIN, 14));
+        passwordField.setPreferredSize(new Dimension(200, 30));
+        passwordField.setMinimumSize(new Dimension(150, 30));
         
-        // Buttons
+        // Buttons with consistent sizing
         loginButton = new JButton("Login");
         loginButton.setFont(new Font("Arial", Font.BOLD, 14));
         loginButton.setPreferredSize(new Dimension(100, 35));
@@ -151,8 +156,12 @@ public class LoginWindow extends JFrame {
     private void configureWindow() {
         setTitle("Secure Vault - Login");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setResizable(false);
+        setResizable(true);
         pack();
+        
+        // Set minimum size for login window
+        setMinimumSize(new Dimension(400, 300));
+        
         setLocationRelativeTo(null);
         
         // Set icon
@@ -201,8 +210,8 @@ public class LoginWindow extends JFrame {
                                 MainWindow mainWindow = new MainWindow(admin, password);
                                 mainWindow.setVisible(true);
                             } catch (Exception e) {
-                                showError("Failed to open main window: " + e.getMessage());
-                                e.printStackTrace();
+                                showError("Failed to open main window");
+                                SecureErrorHandler.handleApplicationError(e);
                             }
                         });
                     } else {
@@ -212,8 +221,8 @@ public class LoginWindow extends JFrame {
                         passwordField.requestFocus();
                     }
                 } catch (Exception e) {
-                    showError("Authentication error: " + e.getMessage());
-                    e.printStackTrace();
+                    showError("Authentication error occurred");
+                    SecureErrorHandler.handleAuthenticationError(e);
                 } finally {
                     // Re-enable login button
                     loginButton.setEnabled(true);

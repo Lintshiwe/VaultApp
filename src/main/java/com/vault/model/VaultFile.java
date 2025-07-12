@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
  * Model class representing a stored file in the vault
  */
 public class VaultFile {
-    private int id;
+    private long id;
     private String originalName;
     private String encryptedPath;
     private String fileType;
@@ -30,8 +30,8 @@ public class VaultFile {
     }
     
     // Getters and Setters
-    public int getId() { return id; }
-    public void setId(int id) { this.id = id; }
+    public long getId() { return id; }
+    public void setId(long id) { this.id = id; }
     
     public String getOriginalName() { return originalName; }
     public void setOriginalName(String originalName) { this.originalName = originalName; }
@@ -47,6 +47,15 @@ public class VaultFile {
     
     public LocalDateTime getDateAdded() { return dateAdded; }
     public void setDateAdded(LocalDateTime dateAdded) { this.dateAdded = dateAdded; }
+    
+    /**
+     * Set creation time from SQL Timestamp
+     */
+    public void setCreatedAt(java.sql.Timestamp timestamp) {
+        if (timestamp != null) {
+            this.dateAdded = timestamp.toLocalDateTime();
+        }
+    }
     
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }

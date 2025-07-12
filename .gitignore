@@ -73,3 +73,33 @@ $RECYCLE.BIN/
 vault.db
 vault.db-*
 .securevault/
+
+# Temporary files from file opening feature
+.securevault_temp/
+
+# 🔒 ADDITIONAL SECURITY PROTECTION
+# Personal vault data (NEVER SHARE)
+**/.securevault/
+**/VaultOutput/
+*.enc
+**/files/*.enc
+**/encrypted/**
+**/decrypted/**
+**/recovered/**
+
+# Personal credentials and configs
+credentials.txt
+passwords.txt
+admin.txt
+secrets.*
+personal.properties
+user.config
+
+# Diagnostic outputs
+diagnostic_*.txt
+recovery_*.log
+password_test_*.txt
+
+# Copyright protection
+*.unauthorized
+*.pirated

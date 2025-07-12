@@ -1,5 +1,6 @@
 package com.vault.util;
 
+import com.vault.config.SecurityConfig;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Base64;
@@ -104,6 +105,15 @@ public class SecurityUtil {
      */
     public static byte[] decrypt(byte[] encryptedData, SecretKey key) {
         try {
+            // Validate input
+            if (encryptedData == null || encryptedData.length < IV_LENGTH) {
+                throw new IllegalArgumentException("Invalid encrypted data: too short or null");
+            }
+            
+            if (key == null) {
+                throw new IllegalArgumentException("Encryption key cannot be null");
+            }
+            
             // Extract IV from encrypted data
             byte[] iv = new byte[IV_LENGTH];
             System.arraycopy(encryptedData, 0, iv, 0, IV_LENGTH);
@@ -118,7 +128,9 @@ public class SecurityUtil {
             
             return cipher.doFinal(actualEncryptedData);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to decrypt data", e);
+            // Use secure error handling instead of printStackTrace
+            SecurityConfig.secureLog(java.util.logging.Level.WARNING, "Decryption failed: {0}", e.getClass().getSimpleName());
+            throw new RuntimeException(SecureErrorHandler.handleCryptoError(e), e);
         }
     }
     
