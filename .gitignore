@@ -69,36 +69,53 @@ ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
 
-# Application specific
+# Application specific - CRITICAL PRIVACY PROTECTION
 vault.db
 vault.db-*
 .securevault/
+*.enc
+*.encrypted
 
 # Temporary files from file opening feature
 .securevault_temp/
+VaultOutput/
+*_decrypted_*
 
-# 🔒 ADDITIONAL SECURITY PROTECTION
-# Personal vault data (NEVER SHARE)
-**/.securevault/
-**/VaultOutput/
-*.enc
-**/files/*.enc
-**/encrypted/**
-**/decrypted/**
-**/recovered/**
-
-# Personal credentials and configs
+# User credentials and sensitive data
+admin.properties
 credentials.txt
 passwords.txt
-admin.txt
-secrets.*
-personal.properties
-user.config
+recovery_keys.txt
+*.key
+*.pem
+*.p12
+*.jks
+
+# Personal files that might be accidentally included
+*.pdf
+*.doc
+*.docx
+*.xls
+*.xlsx
+*.ppt
+*.pptx
+*.mp4
+*.avi
+*.mov
+*.mp3
+*.wav
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.bmp
+*.txt
+*.rtf
 
 # Diagnostic outputs
-diagnostic_*.txt
-recovery_*.log
-password_test_*.txt
+diagnostic_output.txt
+recovery_log.txt
+vault_status.txt
 
 # Copyright protection
 *.unauthorized

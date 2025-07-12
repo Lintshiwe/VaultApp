@@ -34,18 +34,6 @@ A desktop application for securely storing and managing files with encryption an
 - **Secure Password Storage**: Admin passwords are hashed with SHA-256 and salted
 - **Secure File Names**: Original file names are replaced with cryptographically secure random names
 
-## 🔒 Privacy & Security Guarantee
-
-**Your data is completely private and secure:**
-
-- **🏠 Local Storage Only**: All files are stored locally on your computer, never transmitted anywhere
-- **👤 User Isolation**: Each Windows user account gets their own isolated vault: `C:\Users\[username]\.securevault\`
-- **🔐 Personal Encryption**: Your files are encrypted with keys derived from YOUR password
-- **🚫 No Data Sharing**: The application cannot access other users' vaults or share your data
-- **📁 No Repository Data**: This GitHub repository contains NO personal files or user data
-
-**When others download this application, they get their own separate, isolated vault. Your files remain private!**
-
 ## Default Login Credentials
 
 - **Username**: `admin`
