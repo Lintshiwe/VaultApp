@@ -351,7 +351,7 @@ public class MainWindow extends JFrame {
         SwingUtilities.invokeLater(() -> {
             AddFileDialog dialog = new AddFileDialog(this, vaultService);
             dialog.setVisible(true);
-            if (dialog.isFileAdded()) {
+            if (dialog.isConfirmed()) {
                 refreshFileList();
                 updateStats();
                 updateSpaceInfo();
