@@ -179,7 +179,7 @@ public class SystemTrayManager {
         SwingUtilities.invokeLater(() -> {
             if (vaultService != null) {
                 try {
-                    var stats = vaultService.getVaultStatistics();
+                    VaultStatistics stats = (VaultStatistics) vaultService.getVaultStatistics();
                     String message = String.format(
                         "Vault Statistics:\\n\\n" +
                         "📁 Total Files: %d\\n" +
